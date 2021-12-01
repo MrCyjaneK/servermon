@@ -14,6 +14,7 @@ import (
 var text = cmd("echo", "Hello, World!", "a")
 
 type Config struct {
+	Limit   int
 	Entries [][][]string
 }
 
@@ -38,6 +39,9 @@ var mono *g.FontInfo
 func init() {
 	mono = g.AddFont("mono", 14)
 }
+
+var limit int
+
 func loop() {
 	var table = g.Table()
 	var cols []*g.TableColumnWidget
@@ -53,13 +57,20 @@ func loop() {
 					row = append(row, g.Label(conf.Entries[i][j][0]).Font(mono))
 				} else {
 					c := conf.Entries[i][j]
-					conf.Entries[i][j] = []string{"Loading..."}
-					go func(c []string, i int, j int) {
-						log.Println("loading...", c)
-						conf.Entries[i][j] = []string{cmd(c...)}
-						g.Update()
-					}(c, i, j)
-					row = append(row, g.Label("Loading..."))
+					log.Println(limit, conf.Limit)
+					if limit < conf.Limit {
+						limit++
+						conf.Entries[i][j] = []string{"Loading..."}
+						go func(c []string, i int, j int) {
+							log.Println("loading...", c)
+							conf.Entries[i][j] = []string{cmd(c...)}
+							g.Update()
+							limit--
+						}(c, i, j)
+						row = append(row, g.Label("Loading..."))
+					} else {
+						row = append(row, g.Label("Waiting for workers...").Font(mono))
+					}
 				}
 			}
 		}
